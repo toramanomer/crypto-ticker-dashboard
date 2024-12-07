@@ -1,0 +1,11 @@
+.vscode
+dist
+node_modules
+test
+.eslintrc.js
+.gitignore
+.prettierrc.js
+README.md
+*.log
+*.md
+.git
