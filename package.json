@@ -1,0 +1,15 @@
+{
+	"name": "crypto-ticker-dashboard",
+	"version": "1.0.0",
+	"private": true,
+	"main": "index.js",
+	"scripts": {},
+	"license": "ISC",
+	"workspaces": [
+		"backend",
+		"web"
+	],
+	"devDependencies": {
+		"prettier": "3.4.2"
+	}
+}
