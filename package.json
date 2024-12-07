@@ -3,7 +3,10 @@
 	"version": "1.0.0",
 	"private": true,
 	"main": "index.js",
-	"scripts": {},
+	"scripts": {
+		"docker:build": "docker-compose build",
+		"docker:start": "docker-compose up"
+	},
 	"license": "ISC",
 	"workspaces": [
 		"backend",
