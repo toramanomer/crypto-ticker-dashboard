@@ -1,39 +1,66 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from 'react'
+import {
+	Container,
+	Typography,
+	List,
+	ListItem,
+	ListItemText,
+	Paper,
+	ThemeProvider,
+	CssBaseline,
+	createTheme
+} from '@mui/material'
 
-function App() {
-	const [count, setCount] = useState(0)
-
-	return (
-		<>
-			<div>
-				<a href='https://vite.dev' target='_blank'>
-					<img src={viteLogo} className='logo' alt='Vite logo' />
-				</a>
-				<a href='https://react.dev' target='_blank'>
-					<img
-						src={reactLogo}
-						className='logo react'
-						alt='React logo'
-					/>
-				</a>
-			</div>
-			<h1>Vite + React</h1>
-			<div className='card'>
-				<button onClick={() => setCount(count => count + 1)}>
-					count is {count}
-				</button>
-				<p>
-					Edit <code>src/App.tsx</code> and save to test HMR
-				</p>
-			</div>
-			<p className='read-the-docs'>
-				Click on the Vite and React logos to learn more
-			</p>
-		</>
-	)
+interface TradingPair {
+	symbol: string
+	price: string
 }
 
-export default App
+const darkTheme = createTheme({
+	palette: {
+		mode: 'dark'
+	}
+})
+
+export const App = () => {
+	const [pairs, setPairs] = useState<TradingPair[]>([])
+
+	useEffect(() => {
+		const fetchPairs = async () => {
+			try {
+				const response = await fetch(
+					'http://localhost:3000/binance/pairs'
+				)
+				const data = await response.json()
+				setPairs(data)
+			} catch (error) {
+				console.error('Error fetching trading pairs:', error)
+			}
+		}
+
+		fetchPairs()
+	}, [])
+
+	return (
+		<ThemeProvider theme={darkTheme}>
+			<CssBaseline />
+			<Container maxWidth='md'>
+				<Typography variant='h4' component='h1' gutterBottom>
+					Crypto Trading Pairs
+				</Typography>
+				<Paper elevation={3}>
+					<List>
+						{pairs.map(pair => (
+							<ListItem key={pair.symbol}>
+								<ListItemText
+									primary={pair.symbol}
+									secondary={`Price: ${pair.price}`}
+								/>
+							</ListItem>
+						))}
+					</List>
+				</Paper>
+			</Container>
+		</ThemeProvider>
+	)
+}
