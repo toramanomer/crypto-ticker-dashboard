@@ -1,65 +1,164 @@
 import { useEffect, useState } from 'react'
 import {
 	Container,
-	Typography,
-	List,
-	ListItem,
-	ListItemText,
-	Paper,
-	ThemeProvider,
+	createTheme,
 	CssBaseline,
-	createTheme
+	Paper,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	ThemeProvider,
+	Typography
 } from '@mui/material'
+import { io } from 'socket.io-client'
+
+const socket = io('http://localhost:3000')
 
 interface TradingPair {
 	symbol: string
-	price: string
+	lastPrice: string
+	priceChangePercent: string
+	highPrice: string
+	lowPrice: string
+	priceChange: string
 }
 
-const darkTheme = createTheme({
-	palette: {
-		mode: 'dark'
-	}
-})
+function formatCurrency(value: string): string {
+	return new Intl.NumberFormat('en-US', {
+		style: 'currency',
+		currency: 'USD',
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2
+	}).format(parseFloat(value))
+}
 
 export const App = () => {
-	const [pairs, setPairs] = useState<TradingPair[]>([])
+	const [pairs, setPairs] = useState<Record<string, TradingPair>>({})
 
 	useEffect(() => {
-		const fetchPairs = async () => {
-			try {
-				const response = await fetch(
-					'http://localhost:3000/binance/pairs'
+		fetch('http://localhost:3000/binance/pairs')
+			.then(res => res.json())
+			.then((data: TradingPair[]) => {
+				setPairs(
+					data.reduce<typeof pairs>(
+						(pairs, pair) => ({ ...pairs, [pair.symbol]: pair }),
+						{}
+					)
 				)
-				const data = await response.json()
-				setPairs(data)
-			} catch (error) {
-				console.error('Error fetching trading pairs:', error)
-			}
-		}
+				socket.emit(
+					'subscribeToPairs',
+					data.map(pair => pair.symbol)
+				)
+			})
 
-		fetchPairs()
+		socket.on('tickerUpdate', update => {
+			setPairs(pairs => ({
+				...pairs,
+				[update.symbol]: {
+					...update.symbol,
+					...update
+				}
+			}))
+		})
+
+		return () => {
+			socket.disconnect()
+		}
 	}, [])
 
 	return (
-		<ThemeProvider theme={darkTheme}>
+		<ThemeProvider
+			theme={createTheme({
+				palette: {
+					mode: 'dark'
+				}
+			})}
+		>
 			<CssBaseline />
-			<Container maxWidth='md'>
-				<Typography variant='h4' component='h1' gutterBottom>
+			<Container maxWidth='lg'>
+				<Typography
+					variant='h4'
+					component='h1'
+					gutterBottom
+					textAlign='center'
+				>
 					Crypto Trading Pairs
 				</Typography>
-				<Paper elevation={3}>
-					<List>
-						{pairs.map(pair => (
-							<ListItem key={pair.symbol}>
-								<ListItemText
-									primary={pair.symbol}
-									secondary={`Price: ${pair.price}`}
-								/>
-							</ListItem>
-						))}
-					</List>
-				</Paper>
+				<TableContainer component={Paper} sx={{ overflowX: 'initial' }}>
+					<Table stickyHeader>
+						<TableHead>
+							<TableRow>
+								<TableCell>Name</TableCell>
+								<TableCell align='right'>Price</TableCell>
+								<TableCell align='right'>24h High</TableCell>
+								<TableCell align='right'>24h Low</TableCell>
+								<TableCell align='right'>24h Change</TableCell>
+								<TableCell align='right'>
+									24h Change %
+								</TableCell>
+							</TableRow>
+						</TableHead>
+						<TableBody>
+							{Object.values(pairs).map(pair => {
+								return (
+									<TableRow
+										key={pair.symbol}
+										hover
+										role='checkbox'
+										tabIndex={-1}
+									>
+										<TableCell>{pair.symbol}</TableCell>
+										<TableCell align='right'>
+											{formatCurrency(pair.lastPrice)}
+										</TableCell>
+										<TableCell align='right'>
+											{formatCurrency(pair.highPrice)}
+										</TableCell>
+										<TableCell align='right'>
+											{formatCurrency(pair.lowPrice)}
+										</TableCell>
+										<TableCell
+											align='right'
+											sx={{
+												color:
+													(
+														parseFloat(
+															pair.priceChange
+														) >= 0
+													) ?
+														'success.main'
+													:	'error.main'
+											}}
+										>
+											{formatCurrency(pair.priceChange)}
+										</TableCell>
+										<TableCell
+											align='right'
+											sx={{
+												color:
+													(
+														parseFloat(
+															pair.priceChangePercent
+														) >= 0
+													) ?
+														'success.main'
+													:	'error.main'
+											}}
+										>
+											{parseFloat(
+												pair.priceChangePercent
+											).toFixed(2)}
+											%
+										</TableCell>
+									</TableRow>
+								)
+							})}
+						</TableBody>
+					</Table>
+				</TableContainer>
 			</Container>
 		</ThemeProvider>
 	)
