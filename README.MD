@@ -27,3 +27,5 @@ npm run docker:build
 ```sh
 npm run docker:start
 ```
+
+5. Navigate to http://localhost
